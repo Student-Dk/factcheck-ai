@@ -21,7 +21,7 @@ if not GEMINI_API_KEY or not TAVILY_API_KEY:
 
 # Configure Gemini with a supported model (gemini-1.5-pro)
 genai.configure(api_key=GEMINI_API_KEY)
-MODEL_NAME = "gemini-1.5-pro"
+MODEL_NAME = "gemini-2.0-flash"
 model = genai.GenerativeModel(MODEL_NAME)
 
 # -------------------------------------------------------------------
