@@ -39,8 +39,6 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-MAX_CLAIMS = 10
-
 # -------------------------------------------------------------------
 # Page Config & Styles
 # -------------------------------------------------------------------
@@ -129,11 +127,11 @@ def extract_text_from_pdf(uploaded_file):
         return None
 
 # -------------------------------------------------------------------
-# Helper: Extract claims via LLM
+# Helper: Extract ALL claims via LLM
 # -------------------------------------------------------------------
 def extract_claims(pdf_text):
     prompt = f"""
-You are a fact-checking assistant. Extract the {MAX_CLAIMS} most important, verifiable claims from the text.
+You are a fact-checking assistant. Extract ALL specific, verifiable claims from the text below.
 
 Focus on:
 - Statistics and percentages
@@ -142,10 +140,10 @@ Focus on:
 - Named facts (company founded in year Y, etc.)
 - Technical claims
 
+Extract every verifiable claim you find — do not skip any.
+
 Return ONLY a valid JSON array. No markdown, no backticks, no extra text.
 Format: [{{"claim": "exact claim text", "category": "statistic|date|financial|technical|other"}}]
-
-Limit to {MAX_CLAIMS} most significant claims.
 
 Text:
 {pdf_text[:10000]}
@@ -160,13 +158,13 @@ Text:
         claims = json.loads(raw)
         if not isinstance(claims, list):
             raise ValueError("Not a JSON array")
-        return claims[:MAX_CLAIMS]
+        return claims
     except json.JSONDecodeError:
         import re
         match = re.search(r'\[\s*\{.*?\}\s*\]', raw, re.DOTALL)
         if match:
             try:
-                return json.loads(match.group())[:MAX_CLAIMS]
+                return json.loads(match.group())
             except Exception:
                 pass
         st.warning("Could not parse claims from model response.")
@@ -421,7 +419,7 @@ st.markdown('<div class="hero-sub">Upload a PDF → Extract claims → Verify ag
 st.markdown("""
 <div class="methodology-box">
   <b style="color:#00c6ff">How it works:</b><br>
-  1. LLM extracts the most important verifiable claims (stats, dates, figures) from your PDF.<br>
+  1. LLM extracts ALL verifiable claims (stats, dates, figures) from your PDF.<br>
   2. Each claim is searched on the <b>live web</b> using Tavily API — real-time results.<br>
   3. The model reasons <b>only over those search results</b> to classify each claim.<br>
   Verdicts are grounded in live web evidence, not model hallucination.
@@ -449,14 +447,14 @@ if uploaded_file:
                 st.stop()
         st.success(f"PDF processed — {len(pdf_text.split())} words extracted")
 
-        # Step 2: Extract claims
-        with st.spinner("Extracting verifiable claims..."):
+        # Step 2: Extract ALL claims
+        with st.spinner("Extracting all verifiable claims..."):
             claims = extract_claims(pdf_text)
         if not claims:
             st.warning("No verifiable claims found. Try a different PDF.")
             st.stop()
 
-        st.info(f"Found **{len(claims)} claims** to verify (top {MAX_CLAIMS} selected). Searching the web...")
+        st.info(f"Found **{len(claims)} claims** to verify. Searching the web for each...")
 
         # Step 3: Verify each claim
         results      = []
@@ -572,7 +570,7 @@ else:
         <div style="font-size:3rem">📄</div>
         <div style="font-size:1.2rem;margin-top:1rem">Upload a PDF to begin verification</div>
         <div style="font-size:0.9rem;margin-top:0.5rem">
-            The system extracts factual claims and verifies them against live web data.
+            The system extracts all factual claims and verifies them against live web data.
         </div>
     </div>
     """, unsafe_allow_html=True)
